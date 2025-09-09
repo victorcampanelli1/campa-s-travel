@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Passagens Reais - Victor Campanelli</title>
+<title>Campanelli's Travel</title>
 <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; color:#333; }
   header { background:#1a1a1a; color:white; text-align:center; padding:2rem; }
@@ -23,7 +23,7 @@
 <header>
   <h1>Victor Campanelli</h1>
   <svg viewBox="0 0 500 100">
-    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" fill="white" font-family="Arial">Passagens Inteligentes</text>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" fill="white" font-family="Arial">Campanelli's Travel</text>
   </svg>
 </header>
 
@@ -49,7 +49,7 @@
 // Preço máximo para alertas
 const PRICE_ALERT = 500;
 
-// Token Travelpayouts inserido
+// Token Travelpayouts
 const TP_TOKEN = 'd227e64a977dcb3474b2573';
 
 // Solicitar permissão de notificação
@@ -63,30 +63,32 @@ async function searchFlights() {
   const destination = document.getElementById('destination').value.toUpperCase();
   const depart = document.getElementById('departDate').value;
   const ret = document.getElementById('returnDate').value;
-  const passengers = document.getElementById('passengers').value;
 
   const resultsContainer = document.getElementById('results');
   resultsContainer.innerHTML = '<p>Buscando voos...</p>';
 
   try {
-    const flights = [];
+    let flights = [];
 
-    // Travelpayouts API
+    // ------------------ Travelpayouts ------------------
     const tpURL = `https://api.travelpayouts.com/v2/prices/latest?currency=BRL&origin=${origin}&destination=${destination}&depart_date=${depart}&return_date=${ret}&token=${TP_TOKEN}`;
     const tpRes = await fetch(tpURL);
     const tpData = await tpRes.json();
     if(tpData.data){
       Object.values(tpData.data).slice(0,10).forEach(f=>{
         flights.push({
-          origin:f.origin,
-          destination:f.destination,
-          depart_date:f.depart_date,
-          return_date:f.return_date,
-          price:f.price,
-          gate:f.gate
+          origin: f.origin,
+          destination: f.destination,
+          depart_date: f.depart_date,
+          return_date: f.return_date,
+          price: f.price,
+          gate: f.gate
         });
       });
     }
+
+    // Ordenar pelo preço
+    flights.sort((a,b)=>a.price-b.price);
 
     // Exibir resultados
     resultsContainer.innerHTML = '';
@@ -100,7 +102,10 @@ async function searchFlights() {
       resultsContainer.appendChild(card);
 
       if(f.price <= PRICE_ALERT && "Notification" in window && Notification.permission==="granted"){
-        new Notification("Passagem barata!", {body:`${f.origin} → ${f.destination} por R$ ${f.price} (${f.gate})`, icon:"https://upload.wikimedia.org/wikipedia/commons/a/ac/Airplane_silhouette_icon.png"});
+        new Notification("Passagem barata!", {
+          body: `${f.origin} → ${f.destination} por R$ ${f.price} (${f.gate})`,
+          icon: "https://upload.wikimedia.org/wikipedia/commons/a/ac/Airplane_silhouette_icon.png"
+        });
       }
     });
 
