@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passagens Reais - Victor Campanelli</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; color:#333; }
+  header { background:#1a1a1a; color:white; text-align:center; padding:2rem; }
+  header h1 { font-weight:300; font-size:2rem; margin:0.5rem 0; }
+  main { padding:2rem; max-width:900px; margin:auto; }
+  .search-form { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:2rem; }
+  .search-form input, .search-form select, .search-form button { padding:0.7rem; font-size:1rem; flex:1 1 200px; }
+  .results { display:grid; gap:1rem; }
+  .flight-card { background:white; padding:1rem; border-radius:8px; box-shadow:0 3px 8px rgba(0,0,0,0.1); }
+  .flight-card h3 { margin:0 0 0.5rem 0; }
+  .flight-card p { margin:0.3rem 0; }
+  @media(max-width:600px){ .search-form{flex-direction:column;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Victor Campanelli</h1>
+  <svg viewBox="0 0 500 100">
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="40" fill="white" font-family="Arial">Passagens Inteligentes</text>
+  </svg>
+</header>
+
+<main>
+  <div class="search-form">
+    <input type="text" id="origin" placeholder="Origem (ex: GRU)">
+    <input type="text" id="destination" placeholder="Destino (ex: SDU)">
+    <input type="date" id="departDate">
+    <input type="date" id="returnDate">
+    <select id="passengers">
+      <option value="1">1 passageiro</option>
+      <option value="2">2 passageiros</option>
+      <option value="3">3 passageiros</option>
+      <option value="4">4 passageiros</option>
+    </select>
+    <button onclick="searchFlights()">Buscar Voos</button>
+  </div>
+
+  <div class="results" id="results"></div>
+</main>
+
+<script>
+// Preço máximo para alertas
+const PRICE_ALERT = 500;
+
+// Token Travelpayouts inserido
+const TP_TOKEN = 'd227e64a977dcb3474b2573';
+
+// Solicitar permissão de notificação
+if ("Notification" in window && Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+// Função principal
+async function searchFlights() {
+  const origin = document.getElementById('origin').value.toUpperCase();
+  const destination = document.getElementById('destination').value.toUpperCase();
+  const depart = document.getElementById('departDate').value;
+  const ret = document.getElementById('returnDate').value;
+  const passengers = document.getElementById('passengers').value;
+
+  const resultsContainer = document.getElementById('results');
+  resultsContainer.innerHTML = '<p>Buscando voos...</p>';
+
+  try {
+    const flights = [];
+
+    // Travelpayouts API
+    const tpURL = `https://api.travelpayouts.com/v2/prices/latest?currency=BRL&origin=${origin}&destination=${destination}&depart_date=${depart}&return_date=${ret}&token=${TP_TOKEN}`;
+    const tpRes = await fetch(tpURL);
+    const tpData = await tpRes.json();
+    if(tpData.data){
+      Object.values(tpData.data).slice(0,10).forEach(f=>{
+        flights.push({
+          origin:f.origin,
+          destination:f.destination,
+          depart_date:f.depart_date,
+          return_date:f.return_date,
+          price:f.price,
+          gate:f.gate
+        });
+      });
+    }
+
+    // Exibir resultados
+    resultsContainer.innerHTML = '';
+    flights.forEach(f=>{
+      const card = document.createElement('div');
+      card.className='flight-card';
+      card.innerHTML = `<h3>${f.origin} → ${f.destination}</h3>
+        <p>Data: ${f.depart_date} - ${f.return_date || 'Só ida'}</p>
+        <p>Preço: R$ ${f.price}</p>
+        <p>Companhia: ${f.gate}</p>`;
+      resultsContainer.appendChild(card);
+
+      if(f.price <= PRICE_ALERT && "Notification" in window && Notification.permission==="granted"){
+        new Notification("Passagem barata!", {body:`${f.origin} → ${f.destination} por R$ ${f.price} (${f.gate})`, icon:"https://upload.wikimedia.org/wikipedia/commons/a/ac/Airplane_silhouette_icon.png"});
+      }
+    });
+
+    if(flights.length===0) resultsContainer.innerHTML='<p>Nenhum voo encontrado.</p>';
+
+  } catch(err){
+    resultsContainer.innerHTML='<p>Erro ao buscar voos. Verifique suas chaves API e tente novamente.</p>';
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
